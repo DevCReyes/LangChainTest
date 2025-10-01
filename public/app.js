@@ -1,3 +1,5 @@
+let sessionId = crypto.randomUUID();
+
 function send() {
   const chat = document.getElementById("chat");
   const question = document.getElementById("question").value;
@@ -20,10 +22,11 @@ function send() {
   const answerEl = botMsg.querySelector(".answer");
 
   const evtSource = new EventSource(
-    `http://localhost:3000/streaming?q=${encodeURIComponent(question)}`
+    `http://localhost:3000/streaming?q=${encodeURIComponent(question)}&sessionId=${sessionId}`
   );
 
   evtSource.onmessage = (event) => {
+	console.log(event);
     if (event.data === "[DONE]") {
       evtSource.close();
     } else if (event.data.startsWith("[ERROR]")) {

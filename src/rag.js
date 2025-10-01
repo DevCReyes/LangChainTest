@@ -4,6 +4,11 @@ const { Chroma } = require('@langchain/community/vectorstores/chroma');
 const { ChatPromptTemplate, MessagesPlaceholder } = require('@langchain/core/prompts');
 const { createStuffDocumentsChain } = require('langchain/chains/combine_documents');
 const { createRetrievalChain } = require('langchain/chains/retrieval');
+const { RunnableWithMessageHistory } = require("@langchain/core/runnables");
+const { InMemoryChatMessageHistory } = require("@langchain/core/chat_history");
+const { RunnableLambda } = require("@langchain/core/runnables");
+
+const sessions = new Map();
 
 const rag = async () => {
 	const llm = new ChatOpenAI({
@@ -25,8 +30,7 @@ const rag = async () => {
 		[
 			'system',
 			'You are a technical assistant. Respond ONLY with information based on {context}. ' +
-			'If there is not enough information, please state that you cannot provide the documents. ' +
-			'Cite the source where appropriate.'
+			'If there is not enough information, please state that you cannot provide the documents. '
 		],
 		new MessagesPlaceholder('chat_history'),
 		['human', '{input}'],
@@ -37,12 +41,36 @@ const rag = async () => {
 		prompt,
 	});
 
-	const ragChain = await createRetrievalChain({
-		retriever,
-		combineDocsChain,
+	const ragRunnable = new RunnableLambda({
+		func: async (values, options) => {
+			const docs = await retriever._getRelevantDocuments(values.input);	
+
+			return combineDocsChain.invoke(
+				{
+					input: values.input,
+					chat_history: values.chat_history ?? [],
+					documents: docs,
+					context: docs
+				},
+				options
+			);
+		},
 	});
 
-	return ragChain
+	const ragWithMemory = new RunnableWithMessageHistory({
+		runnable: ragRunnable,
+		getMessageHistory: ({ configurable }) => {
+			const sessionId = configurable?.sessionId ?? "anon2";
+			if (!sessions.has(sessionId)) {
+				sessions.set(sessionId, new InMemoryChatMessageHistory());
+			}
+			return sessions.get(sessionId);
+		},
+		inputMessagesKey: "input",
+		historyMessagesKey: "chat_history",
+	});
+
+	return ragWithMemory;
 };
 
 module.exports = { rag };

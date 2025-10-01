@@ -38,13 +38,17 @@ app.get('/streaming', async (req, res) => {
 	res.setHeader("Connection", "keep-alive");
 
 	const question = req.query.q;
+	const sessionId = req.query.sessionId || "anon";
 
 	try {
 		const ragChain = rag();
-		const stream = await (await ragChain).stream({ input: question });
+		const stream = await (await ragChain).stream(
+			{ input: question },
+			{ configurable: { sessionId } }
+		);		
 
-		for await (const chunk of readableToAsyncIterable(stream)) {
-			res.write(`data: ${chunk.answer}\n\n`);
+		for await (const chunk of readableToAsyncIterable(stream)) {		
+			res.write(`data: ${chunk}\n\n`);
 		}
 		res.write("data: [DONE]\n\n");
 		res.end();
