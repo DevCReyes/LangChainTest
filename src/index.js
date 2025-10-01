@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { z } = require('zod');
 const { rag } = require('./rag');
+const readableToAsyncIterable = require('../utils/readAsyncIterable');
 
 const app = express();
 app.use(cors());
@@ -55,22 +56,5 @@ app.get('/streaming', async (req, res) => {
 	}
 
 });
-
-function readableToAsyncIterable(stream) {
-	const reader = stream.getReader();
-	return {
-		async *[Symbol.asyncIterator]() {
-			try {
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) break;
-					yield value;
-				}
-			} finally {
-				reader.releaseLock();
-			}
-		},
-	};
-}
 
 app.listen(3000, () => console.log('servidor corriendo en http://localhost:3000'));
