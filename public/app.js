@@ -27,7 +27,7 @@ function send() {
     if (event.data === "[DONE]") {
       evtSource.close();
     } else if (event.data.startsWith("[ERROR]")) {
-      answerEl.textContent = "❌ Error en el servidor";
+      answerEl.textContent = "Error on the server";
       evtSource.close();
     } else {
       answerEl.textContent += (event.data !== 'undefined') ? event.data : '';
