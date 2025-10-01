@@ -57,4 +57,4 @@ app.get('/streaming', async (req, res) => {
 
 });
 
-app.listen(3000, () => console.log('servidor corriendo en http://localhost:3000'));
+app.listen(3000, () => console.log('server running on http://localhost:3000'));

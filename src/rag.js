@@ -19,7 +19,7 @@ const rag = async () => {
 		}
 	);
 
-	const retriever = await vectorstore.asRetriever({ k: 4 });
+	const retriever = vectorstore.asRetriever({ k: 4 });
 
 	const prompt = ChatPromptTemplate.fromMessages([
 		[
