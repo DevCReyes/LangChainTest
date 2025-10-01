@@ -39,9 +39,7 @@ app.get('/streaming', async (req, res) => {
 	const question = req.query.q;
 
 	try {
-
 		const ragChain = rag();
-
 		const stream = await (await ragChain).stream({ input: question });
 
 		for await (const chunk of readableToAsyncIterable(stream)) {
