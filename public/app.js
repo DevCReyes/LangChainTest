@@ -2,11 +2,22 @@ function send() {
   const chat = document.getElementById("chat");
   const question = document.getElementById("question").value;
 
-  chat.innerHTML += `<div><b>You:</b> ${question}</div>`;
-  chat.innerHTML += `<div><b>Bot:</b> <span id="answer"></span></div>`;
+  if (!question.trim()) return;
 
-  const answerEl = document.getElementById("answer");
-  answerEl.textContent = "";
+  const qaContainer = document.createElement("div");
+  qaContainer.classList.add("qa-container");
+
+  const userMsg = document.createElement("div");
+  userMsg.innerHTML = `<b>You:</b> ${question}`;
+  qaContainer.appendChild(userMsg);
+
+  const botMsg = document.createElement("div");
+  botMsg.innerHTML = `<b>Bot:</b> <span class="answer"></span>`;
+  qaContainer.appendChild(botMsg);
+
+  chat.appendChild(qaContainer);
+
+  const answerEl = botMsg.querySelector(".answer");
 
   const evtSource = new EventSource(
     `http://localhost:3000/streaming?q=${encodeURIComponent(question)}`
@@ -15,9 +26,13 @@ function send() {
   evtSource.onmessage = (event) => {
     if (event.data === "[DONE]") {
       evtSource.close();
-    } else {	
+    } else if (event.data.startsWith("[ERROR]")) {
+      answerEl.textContent = "❌ Error en el servidor";
+      evtSource.close();
+    } else {
       answerEl.textContent += (event.data !== 'undefined') ? event.data : '';
       chat.scrollTop = chat.scrollHeight;
     }
   };
+  document.getElementById("question").value = "";
 }
