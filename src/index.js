@@ -31,4 +31,48 @@ app.post('/ask', async (req, res) => {
 
 });
 
+app.get('/streaming', async (req, res) => {
+	res.setHeader("Content-Type", "text/event-stream");
+	res.setHeader("Cache-Control", "no-cache");
+	res.setHeader("Connection", "keep-alive");
+
+	const question = req.query.q;
+
+	try {
+
+		const ragChain = rag();
+
+		const stream = await (await ragChain).stream({ input: question });
+
+		for await (const chunk of readableToAsyncIterable(stream)) {
+			res.write(`data: ${chunk.answer}\n\n`);
+		}
+		res.write("data: [DONE]\n\n");
+		res.end();
+
+	} catch (err) {
+		console.error("Error on streaming:", err);
+		res.write("data: [ERROR]\n\n");
+		res.end();
+	}
+
+});
+
+function readableToAsyncIterable(stream) {
+	const reader = stream.getReader();
+	return {
+		async *[Symbol.asyncIterator]() {
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					yield value;
+				}
+			} finally {
+				reader.releaseLock();
+			}
+		},
+	};
+}
+
 app.listen(3000, () => console.log('servidor corriendo en http://localhost:3000'));
