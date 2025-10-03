@@ -29,8 +29,8 @@ const rag = async () => {
 	const prompt = ChatPromptTemplate.fromMessages([
 		[
 			'system',
-			'You are a technical assistant. Respond ONLY with information based on {context}. ' +
-			'If there is not enough information, please state that you cannot provide the documents. '
+			'You are a technical assistant and you ONLY respond with information based on {context}. ' +
+			'If there is not enough information, please state that you cannot provide the information. '
 		],
 		new MessagesPlaceholder('chat_history'),
 		['human', '{input}'],
@@ -48,7 +48,8 @@ const rag = async () => {
 				{
 					input: values.input,
 					chat_history: values.chat_history ?? [],
-					documents: docs
+					documents: docs,
+					context: docs
 				},
 				options
 			);
