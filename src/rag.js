@@ -43,14 +43,12 @@ const rag = async () => {
 
 	const ragRunnable = new RunnableLambda({
 		func: async (values, options) => {
-			const docs = await retriever._getRelevantDocuments(values.input);	
-
+			const docs = await retriever._getRelevantDocuments(values.input);
 			return combineDocsChain.invoke(
 				{
 					input: values.input,
 					chat_history: values.chat_history ?? [],
-					documents: docs,
-					context: docs
+					documents: docs
 				},
 				options
 			);
