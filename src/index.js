@@ -1,10 +1,17 @@
 const express = require('express');
 const cors = require('cors');
+const multer = require("multer");
+const fs = require("fs");
+const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
+const { OpenAIEmbeddings } = require("@langchain/openai");
+const { Chroma } = require("@langchain/community/vectorstores/chroma");
 const { z } = require('zod');
 const { rag } = require('./rag');
 const readableToAsyncIterable = require('../utils/readAsyncIterable');
 
 const app = express();
+const upload = multer({ dest: "uploads/" });
+
 app.use(cors());
 app.use(express.json());
 
@@ -45,9 +52,9 @@ app.get('/streaming', async (req, res) => {
 		const stream = await (await ragChain).stream(
 			{ input: question },
 			{ configurable: { sessionId } }
-		);		
+		);
 
-		for await (const chunk of readableToAsyncIterable(stream)) {		
+		for await (const chunk of readableToAsyncIterable(stream)) {
 			res.write(`data: ${chunk}\n\n`);
 		}
 		res.write("data: [DONE]\n\n");
@@ -59,6 +66,32 @@ app.get('/streaming', async (req, res) => {
 		res.end();
 	}
 
+});
+
+app.post("/upload", upload.single("file"), async (req, res) => {
+	try {
+		const filePath = req.file.path;
+		const text = fs.readFileSync(filePath, "utf8");
+
+		const splitter = new RecursiveCharacterTextSplitter({
+			chunkSize: 20,
+			chunkOverlap: 5,
+		});
+
+		const docs = await splitter.createDocuments([text]);
+
+		await Chroma.fromDocuments(docs, new OpenAIEmbeddings(), {
+			url: process.env.CHROMA_URL,
+			collectionName: "company-docs",
+		});
+
+		fs.unlinkSync(filePath);
+
+		res.json({ message: "File uploaded and ingestion completed in Chroma" });
+	} catch (err) {
+		console.error("Error on ingest:", err);
+		res.status(500).json({ message: "Error on ingest", error: err.message });
+	}
 });
 
 app.listen(3000, () => console.log('server running on http://localhost:3000'));
